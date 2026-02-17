@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>Zee Alwan Live</title>
 
-  <!-- Video.js -->
-  <link href="https://vjs.zencdn.net/7.22.1/video-js.css" rel="stylesheet">
-  <script src="https://vjs.zencdn.net/7.22.1/video.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,36 +18,32 @@
   <button onclick="changeServer(2)">Server 2</button>
 </div>
 
-<!-- المشغل -->
-<div class="player">
-  <video
-    id="player"
-    class="video-js vjs-default-skin"
-    controls
-    autoplay
-    preload="auto">
-  </video>
-</div>
+<!-- مشغل الفيديو -->
+<video id="video" controls autoplay></video>
 
 <script>
-  var player = videojs('player');
+var video = document.getElementById('video');
+var hls = new Hls();
 
-  var servers = {
-    1: "https://alwanlive.akraavision.com/alwanlive/alwanlive/playlist.m3u8",
-    2: "http://live.alwan-tv.net:1935/live/alwanlive/playlist.m3u8"
-  };
+var servers = {
+  1: "https://alwanlive.akraavision.com/alwanlive/alwanlive/playlist.m3u8",
+  2: "http://live.alwan-tv.net:1935/live/alwanlive/playlist.m3u8"
+};
 
-  // تشغيل تلقائي
-  player.src({ src: servers[1], type: "application/x-mpegURL" });
-  player.play();
-
-  function changeServer(num) {
-    player.src({ src: servers[num], type: "application/x-mpegURL" });
-    player.play();
-
-    document.querySelectorAll('.servers button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.servers button')[num - 1].classList.add('active');
+function changeServer(num){
+  if(Hls.isSupported()){
+    hls.loadSource(servers[num]);
+    hls.attachMedia(video);
+  } else {
+    video.src = servers[num];
   }
+
+  document.querySelectorAll('.servers button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.servers button')[num-1].classList.add('active');
+}
+
+// تشغيل السيرفر الافتراضي عند التحميل
+changeServer(1);
 </script>
 
 </body>
