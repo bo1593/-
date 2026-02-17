@@ -5,86 +5,51 @@
   <title>Zee Alwan Live</title>
 
   <!-- Video.js -->
-  <link href="https://vjs.zencdn.net/7.22.1/video-js.css" rel="stylesheet" />
+  <link href="https://vjs.zencdn.net/7.22.1/video-js.css" rel="stylesheet">
   <script src="https://vjs.zencdn.net/7.22.1/video.min.js"></script>
 
-  <style>
-    body {
-      background:#111;
-      color:#fff;
-      font-family:Tahoma;
-      text-align:center;
-    }
-
-    .servers {
-      margin: 15px 0;
-    }
-
-    .servers button {
-      background:#222;
-      color:#fff;
-      border:none;
-      padding:10px 18px;
-      margin:5px;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:14px;
-    }
-
-    .servers button.active {
-      background:#0af;
-      color:#000;
-    }
-
-    .player {
-      width:95%;
-      max-width:900px;
-      margin:auto;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h2>🎬 Zee Alwan مباشر</h2>
+<p class="freq">التردد (للمعلومة): 12149 V 27500</p>
 
-<!-- 🔘 أزرار السيرفرات -->
+<!-- أزرار السيرفرات -->
 <div class="servers">
   <button class="active" onclick="changeServer(1)">Server 1</button>
   <button onclick="changeServer(2)">Server 2</button>
 </div>
 
-<!-- ▶️ المشغل -->
+<!-- المشغل -->
 <div class="player">
   <video
-    id="zeePlayer"
+    id="player"
     class="video-js vjs-default-skin"
     controls
-    preload="auto"
-    width="100%"
-    height="auto">
-    <source src="https://alwanlive.akraavision.com/alwanlive/alwanlive/playlist.m3u8"
-            type="application/x-mpegURL">
+    autoplay
+    preload="auto">
   </video>
 </div>
 
 <script>
-  var player = videojs('zeePlayer');
+  var player = videojs('player');
 
   var servers = {
     1: "https://alwanlive.akraavision.com/alwanlive/alwanlive/playlist.m3u8",
     2: "http://live.alwan-tv.net:1935/live/alwanlive/playlist.m3u8"
   };
 
+  // تشغيل تلقائي
+  player.src({ src: servers[1], type: "application/x-mpegURL" });
+  player.play();
+
   function changeServer(num) {
-    player.src({
-      src: servers[num],
-      type: 'application/x-mpegURL'
-    });
+    player.src({ src: servers[num], type: "application/x-mpegURL" });
     player.play();
 
-    // تغيير شكل الزرار
-    document.querySelectorAll('.servers button').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.servers button')[num-1].classList.add('active');
+    document.querySelectorAll('.servers button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.servers button')[num - 1].classList.add('active');
   }
 </script>
 
