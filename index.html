@@ -1,25 +1,290 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>موقع boda لقنوات المباشرة</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>NASR CARD - كامل</title>
+<style>
+body { font-family: Arial, sans-serif; background:#1c1c1c; color:#fff; padding:20px; }
+h1,h3 { color:#f7c600; }
+input, select, button { padding:5px; margin:5px 0; }
+button { background:#f7c600; border:none; cursor:pointer; }
+.container { border:1px solid #444; padding:15px; margin:15px 0; border-radius:10px; }
+table { border-collapse: collapse; width:100%; margin-top:10px; }
+table, th, td { border:1px solid #fff; padding:5px; text-align:center; }
+img { max-width:50px; }
+</style>
 </head>
 <body>
 
-<h1>📺  boda القنوات المباشرة</h1>
+<h1>NASR CARD - كامل</h1>
 
-<div class="channels">
-
-  <a href="zee-alwan.html" class="channel">
-    <p>🎬 Zee Alwan</p>
-  </a>
-
-  <a href="mbc-masr1.html" class="channel">
-    <p>🇪🇬 MBC مصر 1</p>
-  </a>
-
+<!-- تسجيل / دخول المستخدم -->
+<div class="container" id="authSection">
+  <h3>تسجيل الدخول / إنشاء حساب</h3>
+  
+  <div id="registerForm">
+    <input type="text" id="regName" placeholder="الاسم الكامل"><br>
+    <input type="email" id="regEmail" placeholder="البريد الإلكتروني"><br>
+    <input type="password" id="regPassword" placeholder="كلمة المرور"><br>
+    <button onclick="register()">إنشاء حساب</button>
+  </div>
+  
+  <hr>
+  
+  <div id="loginForm">
+    <input type="email" id="loginEmail" placeholder="البريد الإلكتروني"><br>
+    <input type="password" id="loginPassword" placeholder="كلمة المرور"><br>
+    <button onclick="login()">تسجيل الدخول</button>
+    <br><br>
+    <button onclick="loginWithGoogle()">تسجيل دخول بـ Google</button>
+  </div>
 </div>
 
+<!-- صفحة المستخدم -->
+<div class="container" id="userSection" style="display:none;">
+  <h3>مرحبا <span id="userName"></span></h3>
+  <p>رقم المحفظة: <span id="cashNumber"></span></p>
+  <div>باقة 100 كوينز → <span id="price100"></span></div>
+  <div>باقة 500 كوينز → <span id="price500"></span></div>
+  <div>باقة 1000 كوينز → <span id="price1000"></span></div>
+
+  <h3>إرسال طلب شحن / إيداع</h3>
+  <form id="orderForm">
+    نوع الطلب: 
+    <select id="orderType">
+      <option value="deposit">إيداع</option>
+      <option value="shop">شحن</option>
+    </select><br>
+    المبلغ: <input type="number" id="orderAmount" required><br>
+    رقم فوفو (اختياري): <input type="text" id="orderFufu"><br>
+    صورة الحوالة (اختياري): <input type="file" id="orderFile"><br>
+    <button type="submit">إرسال الطلب</button>
+  </form>
+</div>
+
+<!-- لوحة الأدمن -->
+<div class="container" id="adminSection" style="display:none;">
+  <h3>لوحة الأدمن</h3>
+  <h4>تعديل رقم المحفظة</h4>
+  <input type="text" id="cashNumberInput">
+  <button onclick="updateCashNumber()">تحديث الرقم</button>
+
+  <h4>تعديل الأسعار</h4>
+  باقة 100 كوينز: <input type="number" id="price100Input"><br>
+  باقة 500 كوينز: <input type="number" id="price500Input"><br>
+  باقة 1000 كوينز: <input type="number" id="price1000Input"><br>
+  <button onclick="updatePrices()">تحديث الأسعار</button>
+
+  <h4>الطلبات الحالية</h4>
+  <table id="ordersTable">
+    <tr>
+      <th>اليوزر</th><th>نوع الطلب</th><th>المبلغ</th><th>حالة الطلب</th><th>رقم فوفو</th><th>تاريخ</th><th>صورة الحوالة</th>
+    </tr>
+  </table>
+</div>
+
+<script type="module">
+// Firebase App
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyDK1wkigSJerC3U-DPDV2KEPb8fxveOii4",
+  authDomain: "nasr-card.firebaseapp.com",
+  projectId: "nasr-card",
+  storageBucket: "nasr-card.firebasestorage.app",
+  messagingSenderId: "680244255141",
+  appId: "1:680244255141:web:0633bea1f270cfe407304c",
+  measurementId: "G-GJLLEQ4D49"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// تسجيل مستخدم جديد
+async function register() {
+  const name = document.getElementById("regName").value;
+  const email = document.getElementById("regEmail").value;
+  const password = document.getElementById("regPassword").value;
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    await setDoc(doc(db, "Users", user.uid), {
+      name: name,
+      email: email
+    });
+
+    alert("تم إنشاء الحساب بنجاح!");
+  } catch(error){
+    alert("خطأ: " + error.message);
+  }
+}
+
+// تسجيل دخول Email/Password
+async function login() {
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    alert("تم تسجيل الدخول بنجاح!");
+  } catch(error){
+    alert("خطأ: " + error.message);
+  }
+}
+
+// تسجيل دخول Google
+async function loginWithGoogle() {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    const userDocRef = doc(db, "Users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+
+    if(!userSnap.exists()){
+      await setDoc(userDocRef, {
+        name: user.displayName,
+        email: user.email
+      });
+    }
+
+    alert("تم تسجيل الدخول بنجاح!");
+  } catch(error){
+    alert("خطأ: " + error.message);
+  }
+}
+
+// التحقق من حالة المستخدم
+onAuthStateChanged(auth, async (user) => {
+  if(user){
+    document.getElementById("authSection").style.display = "none";
+    document.getElementById("userSection").style.display = "block";
+    document.getElementById("adminSection").style.display = "block"; // الأدمن
+
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    if(userDoc.exists()){
+      const data = userDoc.data();
+      window.currentUser = { uid: user.uid, name: data.name };
+      document.getElementById("userName").innerText = data.name;
+    }
+
+    getSettings();
+    getOrders();
+  } else {
+    document.getElementById("authSection").style.display = "block";
+    document.getElementById("userSection").style.display = "none";
+    document.getElementById("adminSection").style.display = "none";
+  }
+});
+
+// جلب Settings
+async function getSettings(){
+  const settingsRef = doc(db, "Settings", "Main");
+  const settingsSnap = await getDoc(settingsRef);
+  if(settingsSnap.exists()){
+    const data = settingsSnap.data();
+    document.getElementById("cashNumber").innerText = data.cashNumber;
+    document.getElementById("price100").innerText = data.prices['100']+" جنيه";
+    document.getElementById("price500").innerText = data.prices['500']+" جنيه";
+    document.getElementById("price1000").innerText = data.prices['1000']+" جنيه";
+
+    document.getElementById("cashNumberInput").value = data.cashNumber;
+    document.getElementById("price100Input").value = data.prices['100'];
+    document.getElementById("price500Input").value = data.prices['500'];
+    document.getElementById("price1000Input").value = data.prices['1000'];
+  }
+}
+
+// تحديث الأسعار
+async function updatePrices(){
+  const settingsRef = doc(db, "Settings", "Main");
+  await updateDoc(settingsRef, {
+    prices: {
+      '100': Number(document.getElementById("price100Input").value),
+      '500': Number(document.getElementById("price500Input").value),
+      '1000': Number(document.getElementById("price1000Input").value)
+    }
+  });
+  alert("تم تحديث الأسعار!");
+  getSettings();
+}
+
+// تحديث رقم المحفظة
+async function updateCashNumber(){
+  const settingsRef = doc(db, "Settings", "Main");
+  await updateDoc(settingsRef, {
+    cashNumber: document.getElementById("cashNumberInput").value
+  });
+  alert("تم تحديث رقم المحفظة!");
+  getSettings();
+}
+
+// إرسال طلب
+document.getElementById("orderForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const type = document.getElementById("orderType").value;
+  const amount = Number(document.getElementById("orderAmount").value);
+  const fufuId = document.getElementById("orderFufu").value;
+  const fileInput = document.getElementById("orderFile");
+  let imageURL = "";
+
+  if(fileInput.files.length > 0){
+    const file = fileInput.files[0];
+    const storageRef = ref(storage, 'orders/' + Date.now() + '_' + file.name);
+    await uploadBytes(storageRef, file);
+    imageURL = await getDownloadURL(storageRef);
+  }
+
+  await addDoc(collection(db, "Orders"), {
+    userId: window.currentUser.uid,
+    userName: window.currentUser.name,
+    type: type,
+    amount: amount,
+    fufuId: fufuId,
+    status: "pending",
+    date: new Date(),
+    imageURL: imageURL
+  });
+
+  alert("تم إرسال الطلب بنجاح");
+  document.getElementById("orderForm").reset();
+  getOrders();
+});
+
+// عرض الطلبات في الأدمن
+async function getOrders(){
+  const ordersSnap = await getDocs(collection(db, "Orders"));
+  const table = document.getElementById("ordersTable");
+  table.querySelectorAll("tr:not(:first-child)").forEach(e=>e.remove());
+
+  ordersSnap.forEach(docSnap=>{
+    const data = docSnap.data();
+    const row = table.insertRow();
+    row.insertCell(0).innerText = data.userName;
+    row.insertCell(1).innerText = data.type;
+    row.insertCell(2).innerText = data.amount;
+    row.insertCell(3).innerText = data.status;
+    row.insertCell(4).innerText = data.fufuId;
+    row.insertCell(5).innerText = new Date(data.date.seconds*1000).toLocaleString();
+    if(data.imageURL){
+      const imgCell = row.insertCell(6);
+      const img = document.createElement("img");
+      img.src = data.imageURL;
+      imgCell.appendChild(img);
+    } else {
+      row.insertCell(6).innerText = "-";
+    }
+  });
+}
+</script>
 </body>
-</html>
+  </html>
